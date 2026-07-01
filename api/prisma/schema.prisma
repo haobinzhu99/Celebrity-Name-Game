@@ -14,4 +14,19 @@ datasource db {
   provider = "postgresql"
 }
 
-// TODO: add your models below (for example, a Game and its Answers).
+model Game {
+  id        Int      @id @default(autoincrement())
+  roomCode  String   @unique
+  answers   Answer[]
+}
+
+model Answer {
+  id        Int      @id @default(autoincrement())
+  username  String
+  celebrity String
+
+  createdAt DateTime @default(now())
+
+  gameId Int
+  game   Game @relation(fields: [gameId], references: [id])
+}
