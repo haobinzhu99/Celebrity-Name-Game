@@ -37,19 +37,33 @@ app.get("/games", async (req, res) => {
   }
 });
 
+
+app.post("/games", async (req, res) => {
+  const { roomCode } = req.body;
+
+  if (!roomCode) {
+    return res.status(400).json({
+      error: "Room code is required",
+    });
+  }
+
+  try {
+    const game = await prisma.game.create({
+      data: {
+        roomCode,
+      },
+    });
+
+    return res.status(201).json(game);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      error: "Failed to create game",
+    });
+  }
+});
 //Check for unique room
 //Create the game + input for first room
-
-app.post("/games", async (req,res) => {
-  const { roomCode, celebrity } = req.body;
-  if (!roomCode || !celebrity) {
-  return res.status(400).json({
-    error: "You must have both a room code and a celebrity",
-  });
-}
-
-});
-
 
 // TODO: implement the game routes (see the project spec):
 //   POST /games          { roomCode, celebrity }          -> start a game
