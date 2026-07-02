@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
-
+import { PrismaClient } from "./generated/prisma";
+const prisma = new PrismaClient();
 const app = express();
 app.use(express.json());
 
@@ -10,6 +11,45 @@ const PORT = process.env.PORT ?? 3000;
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
+
+app.get("/games", async (req, res) => {
+  try {
+    const games = await prisma.game.findMany({
+      include: {
+        answers: {
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+        },
+      },
+    });
+
+    const result = games.map((game) => ({
+      roomCode: game.roomCode,
+      latestCelebrity: game.answers[0]?.celebrity || null,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Check for unique room
+//Create the game + input for first room
+
+app.post("/games", async (req,res) => {
+  const { roomCode, celebrity } = req.body;
+  if (!roomCode || !celebrity) {
+  return res.status(400).json({
+    error: "You must have both a room code and a celebrity",
+  });
+}
+
+});
+
 
 // TODO: implement the game routes (see the project spec):
 //   POST /games          { roomCode, celebrity }          -> start a game
