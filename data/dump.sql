@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict SocfEqhJr7pIjgaV3PLW5rFCRt2Q8vezzrpnwdiegfMYPKmakz2cbgvFlbHuEUw
+\restrict HbgxsgcrtAlcyxje6KGg8D8HeWUIkcrYSYbfUmxqBKql7tAR2fDSlCQ4Rs0Og6X
 
 -- Dumped from database version 18.4 (Ubuntu 18.4-0ubuntu0.26.04.1)
 -- Dumped by pg_dump version 18.4
 
--- Started on 2026-07-06 10:13:11
+-- Started on 2026-07-06 10:36:19
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,6 +21,16 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE ONLY public."Answer" DROP CONSTRAINT "Answer_gameId_fkey";
+DROP INDEX public."Game_roomCode_key";
+ALTER TABLE ONLY public."Game" DROP CONSTRAINT "Game_pkey";
+ALTER TABLE ONLY public."Answer" DROP CONSTRAINT "Answer_pkey";
+ALTER TABLE public."Game" ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public."Answer" ALTER COLUMN id DROP DEFAULT;
+DROP SEQUENCE public.game_id_seq;
+DROP SEQUENCE public.answer_id_seq;
+DROP TABLE public."Game";
+DROP TABLE public."Answer";
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -192,11 +202,11 @@ ALTER TABLE ONLY public."Answer"
     ADD CONSTRAINT "Answer_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES public."Game"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 
--- Completed on 2026-07-06 10:13:11
+-- Completed on 2026-07-06 10:36:19
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SocfEqhJr7pIjgaV3PLW5rFCRt2Q8vezzrpnwdiegfMYPKmakz2cbgvFlbHuEUw
+\unrestrict HbgxsgcrtAlcyxje6KGg8D8HeWUIkcrYSYbfUmxqBKql7tAR2fDSlCQ4Rs0Og6X
 
