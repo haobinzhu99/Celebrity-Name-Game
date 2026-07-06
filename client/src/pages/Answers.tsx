@@ -31,20 +31,22 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 //I have a .env.example file, does this mean I have to create a .env file in client folder that holds the same http://localhost:3000 value?
 //extablishes the target address for your backend server. If you have a .env file with VITE_API_URL defined, it will use that value; otherwise, it defaults to 'http://localhost:3000'. 
-//So it loos into the .env file for the VITE_API_URL variable. If it finds it, it uses that value; if not, it falls back to 'http://localhost:3000'. This is useful for configuring different environments (like development, staging, production) without changing the code.
+// So it loos into the .env file for the VITE_API_URL variable. If it finds it, it uses that value; if not, it falls back to 'http://localhost:3000'. This is useful for configuring different environments (like development, staging, production) without changing the code.
+*/ 
 
 interface CelebrityName {
     RoomCode: string;
     Username: string;
     CelebrityName: string;
-}
+};
+
 // TS blueprint, for the data structure that will be used when submitting the form. It must have a RoomCode, a Username, and a CelebrityName,
-*/
 
 const Answers = () => { 
  //   const queryClient = useQueryClient();
 
-    
+    const [localAnswers, setLocalAnswers] = React.useState([]); //This is to test for local Answers 
+
     const {control, handleSubmit, reset} = useForm ({
         defaultValues: {
             RoomCode: '',
@@ -63,7 +65,7 @@ const Answers = () => {
     });
 
     const { mutate, isPending } = useMutation({
-        mutationFn: (newAnswer: { RoomCode: string; Username: string; CelebrityName: string }) => 
+        mutationFn: (newAnswer: { CelebrityName: string }) => 
             fetch(`${API_URL}/answers`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json"},
@@ -76,15 +78,19 @@ const Answers = () => {
             onSuccess: () =>
                 queryClient.invalidateQueries({ queryKey: ["answers"] }),
     });    
-    const onSubmit = (data: { RoomCode: string; Username: string; CelebrityName: string }) => {
+
+    // Gemini AI showed me to add a error code using if statements and that the reset portion should be the const {mutate...} - still confused on this part. 
+
+     */
+    const onSubmit = (data: CelebrityName) => {
         console.log("Submitting",data);
+        setLocalAnswers((prevAnswers) => [...prevAnswers, data]); //FOR LOCAL TESTING PURPOSES USING GEMINI AI
         reset({
             RoomCode: data.RoomCode,
-            Username: '', 
+            Username: data.Username, 
             CelebrityName: '',
         });
-    }; */
-
+    };
 
     return <>
         <IonPage> 
@@ -145,13 +151,28 @@ const Answers = () => {
                 <IonToolbar>
                     Submitted Answers 
                 </IonToolbar>
-            {/*<IonList>
+            <IonList> //THIS WAS ADDED BY GEMINI AI TO TEST LOCAL ANSWERS.
+            {localAnswers.map((answer, index) => (
+            // Since we don't have a database auto-generating IDs, we use the array index as the key
+                <IonItem key={index}>
+                    <IonLabel>
+                        <h2><strong>{answer.CelebrityName}</strong></h2>
+                        <p>Submitted by: {answer.Username} (Room: {answer.RoomCode})</p>
+                    </IonLabel>
+                </IonItem>
+           ))}
+            {localAnswers.length === 0 && (
+            <p style={{ paddingLeft: '16px' }}>No answers submitted locally yet.</p>
+            )}
+        </IonList>
+            {/*<IonList> //wORKING ON THIS TO CONNECT IT TO THE API
                 {answers?.map((answer: any) => (
                     <IonItem key={answer.id}>
-                        <IonLabel>{answer.celebrityname}</IonLabel>
+                        <IonLabel><h2><strong>{answer.celebrityname}</strong></h2>
+                        <p>Submitted by: {answer.username} (Roomcode: {answer.roomcode})</p></IonLabel>
                     </IonItem>
                 ))}
-            </IonList> */}
+            </IonList> */} 
             </IonContent>
             </IonPage>
     </>
