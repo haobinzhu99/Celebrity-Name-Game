@@ -6,10 +6,30 @@ Boilerplate for the **Celebrity Name Chain** full-stack group project
 for the game rules, routes, and requirements.
 
 ```text
-├── api/     # Express + Prisma + PostgreSQL game server (TypeScript)
-├── client/  # Ionic React app (React Hook Form + TanStack Query)
-├── data/    # database dump (dump.sql) to share between teammates
-└── README.md
+Celebrity-Name-Game/
+├── api/                  # Express + Prisma + PostgreSQL game server (TypeScript)
+│   ├── prisma/           # Database schema definition
+│   │   └── schema.prisma
+│   ├── src/              # Server source files
+│   │   └── index.ts
+│   ├── .env.example      # Example server environment configuration
+│   ├── package.json      # Backend dependencies and scripts
+│   └── README.md         # API setup & endpoints guide
+├── client/               # Ionic React app (React Hook Form + TanStack Query)
+│   ├── cypress/          # Cypress E2E testing files
+│   ├── public/           # Static icons and assets
+│   ├── src/              # Frontend application source
+│   │   ├── components/   # Shared UI components
+│   │   ├── pages/        # Ionic page views (Home, Games, Answers)
+│   │   ├── theme/        # CSS style variables
+│   │   ├── App.tsx       # Main router & React shell configuration
+│   │   └── main.tsx      # React entrypoint
+│   ├── package.json      # Client dependencies and scripts
+│   └── vite.config.ts    # Frontend Vite configuration
+├── data/                 # Shared database dump files
+│   └── dump.sql          # Seed SQL dump for local database setup
+├── package.json          # Root workspace configuration
+└── README.md             # Root repository guidelines (this file)
 ```
 
 ## Using this repo
