@@ -1,4 +1,5 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import { PrismaClient } from "./generated/prisma/client.js";
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -27,7 +28,7 @@ app.get("/games", async (req, res) => {
         },
       },
     });
-
+    // shows the latest celebrity answer
     const result = games.map((game) => ({
       roomCode: game.roomCode,
       latestCelebrity: game.answers[0]?.celebrity || null,
@@ -45,38 +46,36 @@ app.post("/games", async (req, res) => {
   const { roomCode } = req.body;
 
   if (!roomCode) {
-    return res.status(400).json({
-      error: "Room code is required",
-    });
+    return res.status(400).json({ error: "roomCode required" });
   }
 
-  try {
-    const game = await prisma.game.create({
-      data: {
-        roomCode,
-      },
-    });
+  const existing = await prisma.game.findUnique({
+    where: { roomCode },
+  });
 
-    return res.status(201).json(game);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      error: "Failed to create game",
-    });
+  if (existing) {
+    return res.status(409).json({ error: "Game already exists" });
   }
+
+  const game = await prisma.game.create({
+    data: {
+      roomCode,
+    },
+  });
+
+  res.status(201).json(game);
 });
 
 app.post("/answers", async (req, res) => {
   try {
-    const { gameId, username, answer } = req.body;
+    const { roomCode, username, answer } = req.body;
 
-    if (!gameId || !username || !answer) {
+    if (!roomCode || !username || !answer) {
       return res.status(400).json({
-        error: "Error! There is a missing field",
+        error: "Missing roomCode, username, or answer",
       });
     }
 
-    //remove leading and ending white space
     const trimmedAnswer = answer.trim();
 
     if (!trimmedAnswer) {
@@ -85,60 +84,71 @@ app.post("/answers", async (req, res) => {
       });
     }
 
-    // Normalize the current answer for validation
-    const normalizedAnswer = trimmedAnswer.toLowerCase();
-    const parts = normalizedAnswer.split(/\s+/);
+    const normalizedAnswer = trimmedAnswer.trim().toLowerCase();
+
+    const parts = normalizedAnswer
+      .replace(/[^a-zA-Z\s]/g, "")
+      .trim()
+      .split(/\s+/);
+
     const firstName = parts[0];
 
-    const previousAnswer = await prisma.answer.findFirst({
-      where: {
-        gameId: Number(gameId),
-      },
-      orderBy: {
-        id: "desc",
-      },
+    const game = await prisma.game.findUnique({
+      where: { roomCode },
     });
 
-    // Prevent the same player from answering twice in a row
+    if (!game) {
+      return res.status(404).json({ error: "Game not found" });
+    }
+
+    const previousAnswer = await prisma.answer.findFirst({
+      where: { gameId: game.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // prevents the same player twice in a row
     if (previousAnswer?.username === username) {
       return res.status(409).json({
         error: "The same player cannot answer twice in a row",
       });
     }
+    if (previousAnswer && previousAnswer.normalizedAnswer === normalizedAnswer){
+      return res.status(409).json({ error: "This celebrity has already been used in this game",});
+    }
 
-    if (previousAnswer) {
-      // Normalize the previous celebrity name
-      const previousParts = previousAnswer.celebrity
-        .trim()
-        .toLowerCase()
-        .split(/\s+/);
+    // determine required letter 
+    const source = previousAnswer
+      ? previousAnswer.celebrity
+      : trimmedAnswer;
 
-    
-      const previousLastName = previousParts[previousParts.length - 1];
-      const requiredLetter = previousLastName.charAt(0);
+    const cleaned = source
+      .replace(/[^a-zA-Z\s]/g, "")
+      .trim()
+      .split(/\s+/);
 
-      if (firstName.charAt(0) !== requiredLetter) {
-        return res.status(400).json({
-          error: `Answer must start with "${requiredLetter.toUpperCase()}".`,
-        });
-      }
+    const lastWord = cleaned.at(-1) ?? "";
+    const requiredLetter = lastWord.charAt(0).toLowerCase();
+
+    //validate first name
+    if (firstName.charAt(0) !== requiredLetter) {
+      return res.status(400).json({
+        error: `Answer must start with "${requiredLetter.toUpperCase()}".`,
+      });
     }
 
     const newAnswer = await prisma.answer.create({
       data: {
         username,
         celebrity: trimmedAnswer,
-        gameId: Number(gameId),
+        normalizedAnswer,
+        gameId: game.id,
       },
     });
 
     return res.status(201).json(newAnswer);
   } catch (error) {
     console.error(error);
-
-    return res.status(500).json({
-      error: "Internal server error",
-    });
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
