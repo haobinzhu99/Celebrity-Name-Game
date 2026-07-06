@@ -16,6 +16,22 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/games/:roomCode", async (req, res) => {
+  const game = await prisma.game.findUnique({
+    where: { roomCode: req.params.roomCode },
+  });
+
+  if (!game) return res.status(404).json({ error: "Game not found" });
+
+  const answer = await prisma.answer.findFirst({
+    where: { gameId: game.id },
+    orderBy: { createdAt: "desc" },
+    select: { celebrity: true },
+  });
+
+  res.json(answer?.celebrity ?? null);
+});
+
 app.get("/games", async (req, res) => {
   try {
     const games = await prisma.game.findMany({
