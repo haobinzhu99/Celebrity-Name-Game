@@ -18,6 +18,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true })
 })
 
+//
 app.get('/games/:roomCode', async (req, res) => {
   const game = await prisma.game.findUnique({
     where: { roomCode: req.params.roomCode }
@@ -59,6 +60,7 @@ app.get('/games', async (req, res) => {
   }
 })
 
+//
 app.post('/games', async (req, res) => {
   const { roomCode } = req.body
 
@@ -83,16 +85,18 @@ app.post('/games', async (req, res) => {
   res.status(201).json(game)
 })
 
+//
 app.post('/answers', async (req, res) => {
   try {
     const { roomCode, username, answer } = req.body
-
+    //returns 400 if roomcode or username or answer is missing (requires all of them)
     if (!roomCode || !username || !answer) {
       return res.status(400).json({
         error: 'Missing roomCode, username, or answer'
       })
     }
-
+    // Self explanatory. Takes the answer the user inputs and remove the leading and ending spaces
+    // This is used to display back to the user what THEY wrote
     const trimmedAnswer = answer.trim()
 
     if (!trimmedAnswer) {
@@ -100,24 +104,29 @@ app.post('/answers', async (req, res) => {
         error: 'Answer cannot be empty'
       })
     }
+    // take the output from trimmedAnswer, make it lowercase and use it for comparisions
+    const normalizedAnswer = trimmedAnswer.toLowerCase()
 
-    const normalizedAnswer = trimmedAnswer.trim().toLowerCase()
-
+    //break it into parts for first/last name
     const parts = normalizedAnswer
       .replace(/[^a-zA-Z\s]/g, '')
       .trim()
       .split(/\s+/)
 
+    //take the first char from the array
     const firstName = parts[0]
 
+    //find the game where the roomCode matches what the user inputted
     const game = await prisma.game.findUnique({
       where: { roomCode }
     })
 
+    //If there is no game found, 404 and say not found
     if (!game) {
       return res.status(404).json({ error: 'Game not found' })
     }
 
+    //Find the most recent answer submitted for this game
     const previousAnswer = await prisma.answer.findFirst({
       where: { gameId: game.id },
       orderBy: { createdAt: 'desc' }
@@ -129,18 +138,21 @@ app.post('/answers', async (req, res) => {
         error: 'The same player cannot answer twice in a row'
       })
     }
-    if (
-      previousAnswer &&
-      previousAnswer.normalizedAnswer === normalizedAnswer
-    ) {
+    const existingAnswer = await prisma.answer.findFirst({
+      where: {
+        gameId: game.id,
+        normalizedAnswer
+      }
+    })
+
+    if (existingAnswer) {
       return res
         .status(409)
         .json({ error: 'This celebrity has already been used in this game' })
     }
-
-    // determine required letter
+    // determine required letter. ? is just a quick way to write a if else
     const source = previousAnswer ? previousAnswer.celebrity : trimmedAnswer
-
+    //removes everything that is NOT a-z, A-z or a space
     const cleaned = source
       .replace(/[^a-zA-Z\s]/g, '')
       .trim()
@@ -155,7 +167,7 @@ app.post('/answers', async (req, res) => {
         error: `Answer must start with "${requiredLetter.toUpperCase()}".`
       })
     }
-
+    //creates a new row in the answer table in the database
     const newAnswer = await prisma.answer.create({
       data: {
         username,
@@ -164,7 +176,7 @@ app.post('/answers', async (req, res) => {
         gameId: game.id
       }
     })
-
+    //if successful, return 201 as well as newAnswer. If not return 500 and say internal server error
     return res.status(201).json(newAnswer)
   } catch (error) {
     console.error(error)
@@ -172,6 +184,8 @@ app.post('/answers', async (req, res) => {
   }
 })
 
+//Generates an unique 8 character code that consists of letters+numbers inside
+// roomCode and returns it
 app.get('/games/createRoomCode', async (req, res) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
   let exist

@@ -28,4 +28,6 @@ model Answer {
   createdAt DateTime @default(now())
   gameId Int
   game   Game @relation(fields: [gameId], references: [id])
+  
+  @@unique([gameId, normalizedAnswer])
 }
