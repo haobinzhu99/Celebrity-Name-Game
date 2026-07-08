@@ -24,10 +24,10 @@ model Answer {
   id        Int      @id @default(autoincrement())
   username  String
   celebrity String
-  normalizedAnswer String
+  normalizedAnswer String @unique
   createdAt DateTime @default(now())
   gameId Int
   game   Game @relation(fields: [gameId], references: [id])
   
-  @@unique([gameId, normalizedAnswer])
+  @@unique([gameId])
 }

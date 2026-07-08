@@ -150,22 +150,22 @@ app.post('/answers', async (req, res) => {
         .status(409)
         .json({ error: 'This celebrity has already been used in this game' })
     }
-    // determine required letter. ? is just a quick way to write a if else
-    const source = previousAnswer ? previousAnswer.celebrity : trimmedAnswer
-    //removes everything that is NOT a-z, A-z or a space
-    const cleaned = source
-      .replace(/[^a-zA-Z\s]/g, '')
-      .trim()
-      .split(/\s+/)
+    //removes everything that is NOT a-z, A-z or a space. No check for first answer
+    if (previousAnswer) {
+      const cleaned = previousAnswer.celebrity
+        .replace(/[^a-zA-Z\s]/g, '')
+        .trim()
+        .split(/\s+/)
 
-    const lastWord = cleaned.at(-1) ?? ''
-    const requiredLetter = lastWord.charAt(0).toLowerCase()
+      const lastWord = cleaned.at(-1) ?? ''
+      const requiredLetter = lastWord.charAt(0).toLowerCase()
 
-    //validate first name
-    if (firstName.charAt(0) !== requiredLetter) {
-      return res.status(400).json({
-        error: `Answer must start with "${requiredLetter.toUpperCase()}".`
-      })
+      //validate first name
+      if (firstName.charAt(0) !== requiredLetter) {
+        return res.status(400).json({
+          error: `Answer must start with "${requiredLetter.toUpperCase()}".`
+        })
+      }
     }
     //creates a new row in the answer table in the database
     const newAnswer = await prisma.answer.create({
