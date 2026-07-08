@@ -1,6 +1,35 @@
 # API — Celebrity Name Chain
 
-The game server: **Express + Prisma + PostgreSQL**, written in **TypeScript**.
+    .
+    ├── api/                       # Backend Express server (TypeScript)
+    │   ├── prisma/
+    │   │   └── schema.prisma      # database schema definition
+    │   ├── src/
+    │   │   └── index.ts           # Express server entry point (routes,
+  logic)
+    │   ├── prisma.config.ts       # Prisma ORM configuration
+    │   └── README.md              # Detailed API setup instructions
+    ├── client/                    # Frontend Ionic React app
+    │   ├── cypress/               # E2E Cypress tests and support files
+    │   ├── public/                # Static assets (favicons, manifests)
+    │   ├── src/                   # React application files
+    │   │   ├── components/        # Reusable UI components
+    │   │   ├── pages/             # Screen views (Home.tsx, etc.)
+    │   │   ├── theme/             # Global CSS styling and variables
+    │   │   ├── App.tsx            # App container & router
+    │   │   └── main.tsx           # React DOM render entrypoint
+    │   ├── capacitor.config.ts    # Capacitor mobile native configuration
+    │   ├── cypress.config.ts      # Cypress setup configuration
+    │   ├── eslint.config.js       # ESLint configurations
+    │   ├── index.html             # Main entry HTML file
+    │   └── vite.config.ts         # Vite build configuration
+    ├── data/                      # Shared database dump directory
+    │   └── dump.sql               # PostgreSQL dump to share/seed schema
+    ├── README.md                  # This setup and project overview file
+    └── yarn.lock                  # Project yarn lockfile
+    ──────
+
+he game server: **Express + Prisma + PostgreSQL**, written in **TypeScript**.
 
 ## Setup
 
@@ -17,7 +46,10 @@ The game server: **Express + Prisma + PostgreSQL**, written in **TypeScript**.
    ```bash
    yarn prisma:migrate
    ```
-
+4. 
+   ```bash
+   yarn add cors
+   ```
 ## Running
 
 ```bash
@@ -73,3 +105,5 @@ import { prisma } from "./db.js";
 
 const games = await prisma.game.findMany();
 ```
+
+Gemini helped our team breakdown complex database & express concepts. All ideas, and content are our own, and everything here is critically reviewed and edited by our team before it is used.
