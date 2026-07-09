@@ -18,71 +18,114 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true })
 })
 
-//
+app.get('/games/createRoomCode', async (req, res) => {
+  try {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+
+    let roomCode
+    let exists
+
+    do {
+      roomCode = ''
+
+      for (let i = 0; i < 8; i++) {
+        const randomIndex = Math.floor(Math.random() * chars.length)
+        roomCode += chars[randomIndex]
+      }
+
+      exists = await prisma.game.findUnique({
+        where: { roomCode }
+      })
+    } while (exists)
+
+    res.json({ roomCode })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
+})
+
 app.get('/games/:roomCode', async (req, res) => {
-  const game = await prisma.game.findUnique({
-    where: { roomCode: req.params.roomCode }
-  })
+  try {
+    const game = await prisma.game.findUnique({
+      where: { roomCode: req.params.roomCode },
+      select: {
+        celebrity: true
+      }
+    })
 
-  if (!game) return res.status(404).json({ error: 'Game not found' })
+    if (!game) {
+      return res.status(404).json({
+        error: 'Game not found'
+      })
+    }
 
-  const answer = await prisma.answer.findFirst({
-    where: { gameId: game.id },
-    orderBy: { createdAt: 'desc' },
-    select: { celebrity: true }
-  })
-
-  res.json(answer?.celebrity ?? null)
+    res.json(game.celebrity)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
 })
 
 app.get('/games', async (req, res) => {
   try {
     const games = await prisma.game.findMany({
-      include: {
-        answers: {
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 1
-        }
+      select: {
+        roomCode: true,
+        celebrity: true
       }
     })
-    // shows the latest celebrity answer
+
     const result = games.map(game => ({
       roomCode: game.roomCode,
-      latestCelebrity: game.answers[0]?.celebrity || null
+      latestCelebrity: game.celebrity
     }))
 
     res.json(result)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ error: 'Internal server error' })
+    res.status(500).json({
+      error: 'Internal server error'
+    })
   }
 })
 
 //
 app.post('/games', async (req, res) => {
-  const { roomCode } = req.body
-
-  if (!roomCode) {
-    return res.status(400).json({ error: 'roomCode required' })
-  }
-
-  const existing = await prisma.game.findUnique({
-    where: { roomCode }
-  })
-
-  if (existing) {
-    return res.status(409).json({ error: 'Game already exists' })
-  }
-
-  const game = await prisma.game.create({
-    data: {
-      roomCode
+  const { roomCode, celebrity } = req.body
+  try {
+    if (!roomCode || !celebrity) {
+      return res.status(400).json({
+        error: 'Make sure you have a roomCode and a celebrity answer required'
+      })
     }
-  })
 
-  res.status(201).json(game)
+    const existing = await prisma.game.findUnique({
+      where: { roomCode }
+    })
+
+    if (existing) {
+      return res.status(409).json({ error: 'Game already exists' })
+    }
+
+    const game = await prisma.game.create({
+      data: {
+        roomCode,
+        celebrity
+      }
+    })
+
+    res.status(201).json(game)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({
+      error: 'Internal server error'
+    })
+  }
 })
 
 //
@@ -150,22 +193,21 @@ app.post('/answers', async (req, res) => {
         .status(409)
         .json({ error: 'This celebrity has already been used in this game' })
     }
-    //removes everything that is NOT a-z, A-z or a space. No check for first answer
-    if (previousAnswer) {
-      const cleaned = previousAnswer.celebrity
-        .replace(/[^a-zA-Z\s]/g, '')
-        .trim()
-        .split(/\s+/)
+    //removes everything that is NOT a-z, A-z or a space.
 
-      const lastWord = cleaned.at(-1) ?? ''
-      const requiredLetter = lastWord.charAt(0).toLowerCase()
+    const cleaned = game.celebrity
+      .replace(/[^a-zA-Z\s]/g, '')
+      .trim()
+      .split(/\s+/)
 
-      //validate first name
-      if (firstName.charAt(0) !== requiredLetter) {
-        return res.status(400).json({
-          error: `Answer must start with "${requiredLetter.toUpperCase()}".`
-        })
-      }
+    const lastWord = cleaned.at(-1) ?? ''
+    const requiredLetter = lastWord.charAt(0).toLowerCase()
+
+    //validate first name
+    if (firstName.charAt(0) !== requiredLetter) {
+      return res.status(400).json({
+        error: `Answer must start with "${requiredLetter.toUpperCase()}".`
+      })
     }
     //creates a new row in the answer table in the database
     const newAnswer = await prisma.answer.create({
@@ -176,6 +218,14 @@ app.post('/answers', async (req, res) => {
         gameId: game.id
       }
     })
+
+    await prisma.game.update({
+      where: { id: game.id },
+      data: {
+        celebrity: trimmedAnswer
+      }
+    })
+
     //if successful, return 201 as well as newAnswer. If not return 500 and say internal server error
     return res.status(201).json(newAnswer)
   } catch (error) {
@@ -184,29 +234,9 @@ app.post('/answers', async (req, res) => {
   }
 })
 
-//Generates an unique 8 character code that consists of letters+numbers inside
-// roomCode and returns it
-app.get('/games/createRoomCode', async (req, res) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
-  let exist
-  let roomCode
-  do {
-    roomCode = ''
-    for (let i = 0; i < 8; i++) {
-      const randomIndex = Math.floor(Math.random() * chars.length)
-      roomCode += chars[randomIndex]
-    }
-    exist = await prisma.game.findUnique({
-      where: { roomCode }
-    })
-  } while (exist)
-  res.json({ roomCode })
-})
-
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`)
 })
-
 //Check for unique room
 //Create the game + input for first room
 

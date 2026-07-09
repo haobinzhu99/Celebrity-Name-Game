@@ -2,6 +2,7 @@
 CREATE TABLE "Game" (
     "id" SERIAL NOT NULL,
     "roomCode" TEXT NOT NULL,
+    "celebrity" TEXT NOT NULL,
 
     CONSTRAINT "Game_pkey" PRIMARY KEY ("id")
 );

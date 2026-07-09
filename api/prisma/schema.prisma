@@ -18,16 +18,17 @@ model Game {
   id        Int      @id @default(autoincrement())
   roomCode  String   @unique
   answers   Answer[]
+  celebrity String
 }
 
 model Answer {
   id        Int      @id @default(autoincrement())
   username  String
   celebrity String
-  normalizedAnswer String @unique
+  normalizedAnswer String 
   createdAt DateTime @default(now())
   gameId Int
   game   Game @relation(fields: [gameId], references: [id])
   
-  @@unique([gameId])
+  @@unique([gameId, normalizedAnswer])
 }
