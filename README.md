@@ -1,41 +1,35 @@
-# Celebrity Name Chain — Starter
+# API — Celebrity Name Chain
 
-Boilerplate for the **Celebrity Name Chain** full-stack group project
-(CityTech TTP 2026 Summer). See the
-[project spec](https://github.com/jonathan-chin/citytech-ttpr-2026-summer/blob/main/project_specs/celebrity-name-chain.md)
-for the game rules, routes, and requirements.
+    .
+    ├── api/                       # Backend Express server (TypeScript)
+    │   ├── prisma/
+    │   │   └── schema.prisma      # database schema definition
+    │   ├── src/
+    │   │   └── index.ts           # Express server entry point (routes,
+  logic)
+    │   ├── prisma.config.ts       # Prisma ORM configuration
+    │   └── README.md              # Detailed API setup instructions
+    ├── client/                    # Frontend Ionic React app
+    │   ├── cypress/               # E2E Cypress tests and support files
+    │   ├── public/                # Static assets (favicons, manifests)
+    │   ├── src/                   # React application files
+    │   │   ├── components/        # Reusable UI components
+    │   │   ├── pages/             # Screen views (Home.tsx, etc.)
+    │   │   ├── theme/             # Global CSS styling and variables
+    │   │   ├── App.tsx            # App container & router
+    │   │   └── main.tsx           # React DOM render entrypoint
+    │   ├── capacitor.config.ts    # Capacitor mobile native configuration
+    │   ├── cypress.config.ts      # Cypress setup configuration
+    │   ├── eslint.config.js       # ESLint configurations
+    │   ├── index.html             # Main entry HTML file
+    │   └── vite.config.ts         # Vite build configuration
+    ├── data/                      # Shared database dump directory
+    │   └── dump.sql               # PostgreSQL dump to share/seed schema
+    ├── README.md                  # This setup and project overview file
+    └── yarn.lock                  # Project yarn lockfile
+    ──────
 
-```text
-Celebrity-Name-Game/
-├── api/                  # Express + Prisma + PostgreSQL game server (TypeScript)
-│   ├── prisma/           # Database schema definition
-│   │   └── schema.prisma
-│   ├── src/              # Server source files
-│   │   └── index.ts
-│   ├── .env.example      # Example server environment configuration
-│   ├── package.json      # Backend dependencies and scripts
-│   └── README.md         # API setup & endpoints guide
-├── client/               # Ionic React app (React Hook Form + TanStack Query)
-│   ├── cypress/          # Cypress E2E testing files
-│   ├── public/           # Static icons and assets
-│   ├── src/              # Frontend application source
-│   │   ├── components/   # Shared UI components
-│   │   ├── pages/        # Ionic page views (Home, Games, Answers)
-│   │   ├── theme/        # CSS style variables
-│   │   ├── App.tsx       # Main router & React shell configuration
-│   │   └── main.tsx      # React entrypoint
-│   ├── package.json      # Client dependencies and scripts
-│   └── vite.config.ts    # Frontend Vite configuration
-├── data/                 # Shared database dump files
-│   └── dump.sql          # Seed SQL dump for local database setup
-├── package.json          # Root workspace configuration
-└── README.md             # Root repository guidelines (this file)
-```
-
-## Using this repo
-
-Click **"Use this template"** on GitHub (not Fork). **One** teammate creates
-the repo, then **adds the others as collaborators**. One team = one repo.
+he game server: **Express + Prisma + PostgreSQL**, written in **TypeScript**.
 
 ## Prerequisites
 
@@ -54,6 +48,27 @@ nvm use 22            # use it in this shell
 nvm alias default 22  # optional: make Node 22 your default
 ```
 
+## Setup
+
+1. Install dependencies:
+   ```bash
+   yarn install
+   ```
+2. Copy the env file and set your database URL:
+   ```bash
+   cp .env.example .env
+   # edit .env and set DATABASE_URL
+   ```
+3. Create the database tables and generate the Prisma client:
+   ```bash
+   yarn prisma:migrate
+   ```
+4. 
+   ```bash
+   yarn add cors
+   ```
+
+
 ## 1. API (backend)
 
 ```bash
@@ -62,12 +77,11 @@ yarn install
 cp .env.example .env      # then edit .env (see below)
 yarn prisma:migrate       # create tables + generate the Prisma client
 yarn dev                  # http://localhost:3000  (GET /health -> { "ok": true })
+yarn add cors             #
 ```
 
 **Edit `.env`** and set `DATABASE_URL` to your local PostgreSQL connection
 before running `yarn prisma:migrate`.
-
-More detail (scripts, Prisma 7 workflow) is in [`api/README.md`](api/README.md).
 
 ## 2. Client (frontend)
 
@@ -91,3 +105,61 @@ ngrok http 3000
 ```
 
 Expose the **API**, never your database directly.
+
+## Running
+
+```bash
+yarn dev     # start the server in watch mode (restarts on save)
+```
+
+The server listens on `http://localhost:3000` (or `PORT` from `.env`).
+Check it's up: `GET http://localhost:3000/health` → `{ "ok": true }`.
+
+## Yarn scripts
+
+| Script                 | What it does                                                        |
+| ---------------------- | ------------------------------------------------------------------- |
+| `yarn dev`             | Run the server with **tsx** in watch mode (fast, no build step)     |
+| `yarn build`           | Type-check and compile TypeScript to `dist/` with **tsc**           |
+| `yarn start`           | Run the compiled server from `dist/` (use after `yarn build`)       |
+| `yarn prisma:generate` | Regenerate the Prisma client from `prisma/schema.prisma`            |
+| `yarn prisma:migrate`  | Create/apply a migration, update tables, and regenerate the client  |
+| `yarn prisma:studio`   | Open Prisma Studio, a GUI to browse and edit your data              |
+
+## Typical workflow
+
+1. Edit `prisma/schema.prisma` to model your data.
+2. Run `yarn prisma:migrate` to apply the change and regenerate the client.
+3. Wire up the client (see "Using Prisma in code" below).
+4. Add your routes in `src/` and test with `yarn dev`.
+
+See the project spec for the routes and rules you need to implement.
+
+## Using Prisma in code
+
+This project uses **Prisma 7**, which dropped the old Rust engine: the
+connection URL lives in `prisma.config.ts` (not `schema.prisma`), the client is
+generated into `src/generated/prisma`, and you connect through a **driver
+adapter** (`@prisma/adapter-pg`).
+
+This project is **ESM** (`"type": "module"`), so relative imports need a
+`.js` extension. After running `yarn prisma:migrate`, create `src/db.ts`:
+
+```ts
+import { PrismaClient } from "./generated/prisma/client.js";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+
+export const prisma = new PrismaClient({ adapter });
+```
+
+Then use it in your routes:
+
+```ts
+import { prisma } from "./db.js";
+
+const games = await prisma.game.findMany();
+```
+
+Gemini helped our team breakdown complex database & express concepts. All ideas, and content are our own, and everything here is critically reviewed and edited by our team before it is used.
