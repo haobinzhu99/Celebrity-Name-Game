@@ -1,16 +1,29 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
 
 const Home: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Celebrity Name Chain</IonTitle>
+          <IonTitle>Celebrity Name Chain Home Page</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
-        <p>Hello, world!</p>
+        
+          <IonButton
+          expand="block" 
+          routerLink="/games"
+          >
+          Create Room Code and See Current Room Codes
+          </IonButton>
+          <IonButton
+          expand="block" 
+          routerLink="/answers"
+          >
+          Play Game
+          </IonButton>
       </IonContent>
+     
     </IonPage>
   );
 };

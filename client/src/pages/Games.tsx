@@ -1,3 +1,4 @@
+//@ts-check
 import React from "react";
 
 import {
@@ -28,25 +29,26 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 interface GameFormData {
     RoomCode: string;
-    Username: string;
+    CelebrityName: string;
 
 }
 
 const Games = () => { 
+    //useQueryClient function allows for 
     const queryClient = useQueryClient();
-   // const [localAnswers, setLocalAnswers] = React.useState([]);
     const {control, handleSubmit, reset} = useForm ({
         defaultValues: {
             RoomCode: '',
-            Username: '',
         }
     });
     
-    const {data : rooms, isLoading } = useQuery({
+    const {data : rooms } = useQuery({
         queryKey: ["rooms"],
-        queryFn: () => fetch(`${API_URL}/games`).then((r) => r.json()),
+        queryFn: () => 
+            fetch(`${API_URL}/games`).then((res) => res.json()),
         refetchInterval: 1500, 
     });
+    
 
     const { mutate, isPending } = useMutation({
         mutationFn: (newRoom: GameFormData) => 
@@ -54,15 +56,15 @@ const Games = () => {
                 method: 'POST',
                 headers: { "Content-Type": "application/json"},
                 body: JSON.stringify({
-                    roomcode: newRoom.RoomCode
-                    
+                    roomCode: newRoom.RoomCode
+
                 }),
             }).then((r) => r.json()),
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ["rooms"] });
+                queryClient.invalidateQueries({ queryKey: ["latestcelebrity"]});
                 reset({
                     RoomCode: '',
-                    Username: ''
                 });
             }
     }); 
@@ -78,7 +80,7 @@ const Games = () => {
     return <>
         <IonHeader>
             <IonToolbar>
-                <IonTitle>Games</IonTitle>
+                <IonTitle>Current Games and Create Game</IonTitle>
             </IonToolbar>
         </IonHeader>
         <IonContent>
@@ -89,7 +91,7 @@ const Games = () => {
                 render={({ field })  => (
                     <IonInput 
                     fill="outline"
-                    label="Enter New Room Code"
+                    label="Create New Room Code"
                     value={field.value}
                     onIonChange={(e) => field.onChange(e.detail.value)}
                     />
@@ -112,7 +114,14 @@ const Games = () => {
                 type='submit'
                 >
                     Submit
-                </IonButton>
+            </IonButton>
+            <IonButton
+                shape='round'
+                slot='end'
+                routerLink={'/answers'}
+                >
+                Click Here To Play
+            </IonButton>
             </form>
             {/*THIS WAS ADDED BY GEMINI AI TO TEST LOCAL ANSWERS.*/}
              <IonList>
@@ -120,7 +129,7 @@ const Games = () => {
                         <IonItem key={room.roomCode}>
                             <IonLabel>
                                 <h2><strong>Room Code: {room.roomCode}</strong></h2>
-
+                                <p>Latest Celebrity: {room.latestCelebrity ?? "None"}</p>
                             </IonLabel>
                         </IonItem>
                         ))}

@@ -13,6 +13,7 @@ import {
     IonLabel,
     IonIcon,
     IonPage,
+    
 } from "@ionic/react";
 
 import { heart } from 'ionicons/icons';
@@ -46,68 +47,69 @@ interface CelebrityName {
 const Answers = () => { 
     const queryClient = useQueryClient();
 
-   // const [localAnswers, setLocalAnswers] = React.useState([]); //This is to test for local Answers 
-
-    const {control, handleSubmit, reset} = useForm ({
+    const {control, handleSubmit, reset, getValues, watch} = useForm ({
         defaultValues: {
             RoomCode: '',
             Username: '',
             CelebrityName: '',
         }
-        
     });
     
+    const RoomCodeToCheck = watch("RoomCode");
 
-
-    const {data : answers, isLoading } = useQuery({
-        queryKey: ["answers"],
-        queryFn: () => fetch(`${API_URL}/games`).then((r) => r.json()),
+    const {data : latestCelebrity } = useQuery({ 
+        queryKey: ["latestCelebrity",RoomCodeToCheck],
+        queryFn: () => 
+            fetch(`${API_URL}/games/${RoomCodeToCheck}`).then((res) => res.json()),
         refetchInterval: 1500, 
-        
-    },
-    
-
-);
-    
+    });
 
     const { mutate, isPending } = useMutation({
-        mutationFn: (newAnswer: CelebrityName ) => 
+        mutationFn: (newAnswer: CelebrityName) => 
             fetch(`${API_URL}/answers`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json"},
                 body: JSON.stringify({
                     roomCode: newAnswer.RoomCode,
                     username: newAnswer.Username,
-                    celebrityname: newAnswer.CelebrityName
+                    answer: newAnswer.CelebrityName
                 }),
-            }).then((r) => r.json()),
-            onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: ["answers"] });
+            }).then((res) => res.json()),
+            onSuccess: (data, variables) => {
+                queryClient.invalidateQueries({ queryKey: ["latestCelebrity", variable.RoomCode] });
                 reset({
-                    RoomCode: getValues(`RoomCode`),             
-                    Username: getValues(`Username`), 
+                    RoomCode: getValues("RoomCode"),             
+                    Username: getValues("Username"), 
                     CelebrityName: '',
                 });
-                console.log("I am here: ", answers)
+                console.log("I am here: ", game);
 
             }
     });    
 
-    // Gemini AI showed me to add a error code using if statements and that the reset portion should be the const {mutate...} - still confused on this part. 
 
     
     const onSubmit = (data: CelebrityName) => {
-        console.log("Submitting",data);
+    
         // alert();
         // setLocalAnswers((prevAnswers) => [...prevAnswers, data]); //FOR LOCAL TESTING PURPOSES USING GEMINI AI
         mutate(data);
     };
+
 
     return <>
         <IonPage> 
             <IonHeader>
                 <IonToolbar>
                     <IonTitle color="tertiary">Celebrity Name Answer</IonTitle>
+                    <IonButton
+                        slot='end'
+                        shape='round'
+                        type='button'
+                        routerLink={'/games'}
+                    >
+                        All Room Codes Here
+                    </IonButton>
                 </IonToolbar>
             </IonHeader>
             <IonContent fullscreen>
@@ -157,33 +159,25 @@ const Answers = () => {
                     >
                         Submit 
                         <IonIcon slot="end" icon={heart}> </IonIcon>
-                    </IonButton>
+                </IonButton>
+                <IonButton
+                    routerLink="/"
+                >
+                    Press Here To Go Home
+                </IonButton>
+                
             </form>
                 <IonToolbar>
                     Submitted Answers 
                 </IonToolbar>
             <IonList>
-            {/* localAnswers.map((answer, index) => (
-            // Since we don't have a database auto-generating IDs, we use the array index as the key
-                <IonItem key={index}>
-                    <IonLabel>
-                        <h2><strong>{answer.CelebrityName}</strong></h2>
-                        <p>Submitted by: {answer.Username} (Room: {answer.RoomCode})</p>
-                    </IonLabel>
-                </IonItem>
-           ))}
-            {localAnswers.length === 0 && (
-            <p style={{ paddingLeft: '16px' }}>No answers submitted locally yet.</p>
-            ) */}
-        </IonList>
-            <IonList> //wORKING ON THIS TO CONNECT IT TO THE API
-                {answers?.map((answer: any) => (
-                    <IonItem key={game.roomCode}>
-                        <IonLabel><h2><strong>{game.latestCelebrity}</strong></h2>
-                        <p>Submitted by: {game.username} (Roomcode: {game.roomCode})</p></IonLabel>
-                    </IonItem>
-                ))}
-            </IonList> 
+          <IonItem>
+            <IonLabel>
+                <h2><strong>Current Celebrity: {typeof latestCelebrity === 'object' ? latestCelebrity?.latestCelebrity : latestCelebrity}</strong></h2>
+                <p>Submitted by: {}</p>
+            </IonLabel>
+          </IonItem>
+        </IonList> 
             </IonContent>
             </IonPage>
     </>
