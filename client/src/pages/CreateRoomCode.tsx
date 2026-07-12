@@ -21,3 +21,9 @@ import {
     useMutation,
     useQueryClient
 } from '@tanstack/react-query';
+
+export const CreateRoomCode = () => { 
+
+ }
+
+export default CreateRoomCode;

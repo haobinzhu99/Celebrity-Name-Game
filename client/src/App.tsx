@@ -57,7 +57,9 @@ const App: React.FC = () => (
         <Route exact path="/answers">
           <Answers/>
         </Route>
-        <Ro
+        <Route exact path="/games/CreateRoomCode">
+          <CreateRoomCode />
+        </Route>
       </IonRouterOutlet>
     </IonReactRouter>
   </IonApp>
