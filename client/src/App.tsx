@@ -9,6 +9,7 @@ import {
 import { IonReactRouter } from '@ionic/react-router';
 import Games from './pages/Games';
 import Answers from './pages/Answers';
+import CreateRoomCode from './pages/CreateRoomCode'
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -56,6 +57,7 @@ const App: React.FC = () => (
         <Route exact path="/answers">
           <Answers/>
         </Route>
+        <Ro
       </IonRouterOutlet>
     </IonReactRouter>
   </IonApp>

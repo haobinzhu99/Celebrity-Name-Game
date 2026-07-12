@@ -171,6 +171,7 @@ const Answers = () => {
                     Submitted Answers 
                 </IonToolbar>
             <IonList>
+           
           <IonItem>
             <IonLabel>
                 <h2><strong>Current Celebrity: {typeof latestCelebrity === 'object' ? latestCelebrity?.latestCelebrity : latestCelebrity}</strong></h2>

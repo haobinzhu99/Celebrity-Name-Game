@@ -1,5 +1,5 @@
 //@ts-check
-import React from "react";
+import { useState } from "react";
 
 import {
     IonButton,
@@ -12,6 +12,7 @@ import {
     IonItem,
     IonLabel,
     IonPage,
+    useIonRouter
 } from "@ionic/react";
 
 import { 
@@ -25,6 +26,7 @@ import {
     useQueryClient
 } from '@tanstack/react-query';
 
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 interface GameFormData {
@@ -36,13 +38,15 @@ interface GameFormData {
 const Games = () => { 
     //useQueryClient function allows for 
     const queryClient = useQueryClient();
+    const router = useIonRouter();
+
     const {control, handleSubmit, reset} = useForm ({
         defaultValues: {
             RoomCode: '',
+            CelebrityName: ''
         }
     });
-    
-    const {data : rooms } = useQuery({
+    const {data : rooms, isLoading, isError } = useQuery({
         queryKey: ["rooms"],
         queryFn: () => 
             fetch(`${API_URL}/games`).then((res) => res.json()),
@@ -51,36 +55,39 @@ const Games = () => {
     
 
     const { mutate, isPending } = useMutation({
-        mutationFn: (newRoom: GameFormData) => 
+        mutationFn: (newRoom: GameFormData ) => 
             fetch(`${API_URL}/games`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json"},
                 body: JSON.stringify({
-                    roomCode: newRoom.RoomCode
-
+                    roomCode: newRoom.RoomCode,
+                    celebrity: newRoom.CelebrityName
                 }),
             }).then((r) => r.json()),
-            onSuccess: () => {
-                queryClient.invalidateQueries({ queryKey: ["rooms"] });
-                queryClient.invalidateQueries({ queryKey: ["latestcelebrity"]});
-                reset({
-                    RoomCode: '',
-                });
-            }
+        onSuccess: (data, variable) => {
+            queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            queryClient.invalidateQueries({ queryKey: ["latestcelebrity"]});
+            reset({
+                RoomCode: '',
+                CelebrityName: ''
+            });
+
+            router.push(`/answers/${variable.RoomCode}`);
+        }
     }); 
 
 
-    const onSubmit = (data: { RoomCode: string; Username: string }) => {
+    const onSubmit = (data: { RoomCode: string; CelebrityName: string }) => {
         console.log(data);
-      //  setLocalAnswers((prevAnswers) => [...prevAnswers, data]); //FOR LOCAL TESTING PURPOSES USING GEMINI AI
         mutate(data);
     }; 
     
 
     return <>
+    <IonPage>
         <IonHeader>
             <IonToolbar>
-                <IonTitle>Current Games and Create Game</IonTitle>
+                <IonTitle>Start Game</IonTitle>
             </IonToolbar>
         </IonHeader>
         <IonContent>
@@ -91,40 +98,53 @@ const Games = () => {
                 render={({ field })  => (
                     <IonInput 
                     fill="outline"
-                    label="Create New Room Code"
+                    label="Enter Room Code"
                     value={field.value}
                     onIonChange={(e) => field.onChange(e.detail.value)}
                     />
                 )}
             /> 
             <Controller
-                name="Username"
+                name="CelebrityName"
                 control={control}
                 render={({ field }) => (
                     <IonInput
-                    label="Username"
+                    label="Celebrity Name"
                     fill='outline'
                     value={field.value}
                     onIonChange={(e) => field.onChange(e.detail.value)}
                     />
                 )}
             /> 
-            <IonButton
-                shape='round'
-                type='submit'
-                >
-                    Submit
-            </IonButton>
-            <IonButton
-                shape='round'
-                slot='end'
-                routerLink={'/answers'}
-                >
-                Click Here To Play
-            </IonButton>
-            </form>
-            {/*THIS WAS ADDED BY GEMINI AI TO TEST LOCAL ANSWERS.*/}
-             <IonList>
+            <div style={{ display: 'flex', gap: '10px' }}>
+                        {/* This submits the form, updates DB, and navigates to /answers/roomcode on success */}
+                        <IonButton
+                            shape='round'
+                            type='submit'
+                            disabled={isPending}
+                        >
+                            {isPending ? 'Starting...' : 'Submit & Start'}
+                        </IonButton>
+                    </div>
+                </form>
+
+                 <IonList className="ion-margin-top">
+                    {rooms?.map((room: any) => (
+                        <IonItem 
+                            key={room.roomCode} 
+                            button 
+                            detail={true}
+                            onClick={() => router.push(`/answers/${room.roomCode}`)}
+                        >
+                            {/* 4. Added an onClick here so players can click any existing room from the list to join it directly */}
+                            <IonLabel>
+                                <h2><strong>Room Code: {room.roomCode}</strong></h2>
+                                <p>Latest Celebrity: {room.latestCelebrity ?? "None"}</p>
+                            </IonLabel>
+                        </IonItem>
+                    ))}
+                </IonList>
+             {/*<IonList>
                 {rooms?.map((room: any) => (
                         <IonItem key={room.roomCode}>
                             <IonLabel>
@@ -133,20 +153,10 @@ const Games = () => {
                             </IonLabel>
                         </IonItem>
                         ))}
-                        {/*localAnswers.map((answer, index) => (
-                        // Since we don't have a database auto-generating IDs, we use the array index as the key
-                            <IonItem key={index}>
-                                <IonLabel>
-                                    <h2><strong>{answer.CelebrityName}</strong></h2>
-                                    <p>Submitted by: {answer.Username} (Room: {answer.RoomCode})</p>
-                                </IonLabel>
-                            </IonItem>
-                       ))}
-                        {localAnswers.length === 0 && (
-                        <p style={{ paddingLeft: '16px' }}>No answers submitted locally yet.</p>
-                        )  */}
-                    </IonList>
+                    
+                    </IonList> */}
         </IonContent>
+        </IonPage>
     </>
 };
 
