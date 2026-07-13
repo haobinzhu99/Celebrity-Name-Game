@@ -1,6 +1,10 @@
 //@ts-nocheck
-import React from "react";
-
+//disables strict ts compilation checks for this file
+import React, { 
+    useEffect,
+    useState
+ } from "react";
+ //imports from the react library 
 import {
     IonButton,
     IonContent,
@@ -13,57 +17,66 @@ import {
     IonLabel,
     IonIcon,
     IonPage,
-    
 } from "@ionic/react";
-
+//imports ui from ionic framework 
 import { heart } from 'ionicons/icons';
- 
+ //imports the heart icon from library above
 import { 
     useQuery,
     useMutation,
     useQueryClient
 } from '@tanstack/react-query';
-
+//useQuery/Client for the get routes and mutation to change like post delete
 import { 
     useForm, 
     Controller,
-} from "react-hook-form";
- 
+} from "react-hook-form"; 
+//manage state validation and structural bindings and submission handling
+import { 
+    useParams 
+} from 'react-router-dom'; 
+//is a hook used to extract dynamic parameters from the current URL path 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-
-//I have a .env.example file, does this mean I have to create a .env file in client folder that holds the same http://localhost:3000 value?
-//extablishes the target address for your backend server. If you have a .env file with VITE_API_URL defined, it will use that value; otherwise, it defaults to 'http://localhost:3000'. 
-// So it loos into the .env file for the VITE_API_URL variable. If it finds it, it uses that value; if not, it falls back to 'http://localhost:3000'. This is useful for configuring different environments (like development, staging, production) without changing the code.
-
-
+// Sets up your base backend server link, fallback-defaulting back to localhost port 3000 if no environment variables exist.
 interface CelebrityName {
     RoomCode: string;
     Username: string;
     CelebrityName: string;
 };
-
 // TS blueprint, for the data structure that will be used when submitting the form. It must have a RoomCode, a Username, and a CelebrityName,
-
 const Answers = () => { 
     const queryClient = useQueryClient();
-
-    const {control, handleSubmit, reset, getValues, watch} = useForm ({
+    // Connects to the main TanStack configuration network instance, providing accessibility to manually invalidate or clear server query pools.
+    const { roomCode } = useParams<{ roomCode: string}>();
+    // Connects to the main TanStack configuration network instance, providing accessibility to manually invalidate or clear server query pools.
+    const [lastSubmitter, setLastSubmitter] = useState<string>("System Starter")
+    // Allocates local reactive hook memory storage tracking who completed the last answer post locally within this specific viewing window.
+    const {control, handleSubmit, reset, getValues, watch, setValue} = useForm<CelebrityName> ({
         defaultValues: {
-            RoomCode: '',
+            RoomCode: roomCode || '',
             Username: '',
             CelebrityName: '',
         }
     });
-    
+    // Destructures core utilities from react-hook-form, seeding standard initial conditions for fields like RoomCode, Username, and CelebrityName.
+    useEffect(() => {
+        if (roomCode) {
+            setValue("RoomCode", roomCode );
+        }
+    }, [roomCode, setValue]);
+    // Triggers an event hook whenever the route roomCode shifts, programmatically driving that updated parameter string straight back into form state.
     const RoomCodeToCheck = watch("RoomCode");
-
-    const {data : latestCelebrity } = useQuery({ 
-        queryKey: ["latestCelebrity",RoomCodeToCheck],
+    // Subscribes a listener property to the "RoomCode" state entry inside react-hook-form, updating its value string every single keystroke.
+    const {data: gameData, error: queryError } = useQuery({ 
+        queryKey: ["latestCelebrity", roomCode],
         queryFn: () => 
-            fetch(`${API_URL}/games/${RoomCodeToCheck}`).then((res) => res.json()),
+            fetch(`${API_URL}/games/${roomCode}`).then((res) => res.json()),
         refetchInterval: 1500, 
+        enabled: !!roomCode,
     });
-
+    // Fires off an auto-polling network fetch targeting your backend game routes at 1.5-second cycles, provided a valid roomCode exists in context.
+    console.log("TYPE OF GAMEDATA:", typeof gameData, "VALUE:", gameData);
+    // Essential trace utility printing the backend payload profile directly back to your web inspector platform every rendering frame pass.
     const { mutate, isPending } = useMutation({
         mutationFn: (newAnswer: CelebrityName) => 
             fetch(`${API_URL}/answers`, {
@@ -74,34 +87,65 @@ const Answers = () => {
                     username: newAnswer.Username,
                     answer: newAnswer.CelebrityName
                 }),
-            }).then((res) => res.json()),
+            }).then((res) => {
+                if (!res.ok) throw new Error ("Failed to post submission");
+                return res.json();
+            }),
             onSuccess: (data, variables) => {
-                queryClient.invalidateQueries({ queryKey: ["latestCelebrity", variable.RoomCode] });
+                queryClient.invalidateQueries({ queryKey: ["latestCelebrity", variables.RoomCode] });
+                
+                if (variables.Username) {
+                   setLastSubmitter(variables.Username);
+                }
                 reset({
                     RoomCode: getValues("RoomCode"),             
                     Username: getValues("Username"), 
                     CelebrityName: '',
                 });
-                console.log("I am here: ", game);
+                console.log("Answer registerd successfully: ", data);
 
             }
     });    
 
 
     
-    const onSubmit = (data: CelebrityName) => {
+    const onSubmit = (data: CelebrityFormInput) => {
     
         // alert();
         // setLocalAnswers((prevAnswers) => [...prevAnswers, data]); //FOR LOCAL TESTING PURPOSES USING GEMINI AI
         mutate(data);
     };
 
+    const displayCelebrityText = () => {
+        
+   
+        if (queryError) return `Error: ${queryError.message}`;
+        if (!gameData) return "Loading active celebrity...";
+
+        if (typeof gameData === "string") {
+        return gameData;
+        }
+   
+        let target = Array.isArray(gameData) ? gameData[0] : gameData;
+        if (target && target.data) {
+            target = target.data;
+        }
+    
+        if (!target) return "No data payload";
+        
+
+        return target.CelebrityName || 
+               target.celebrityName || 
+               target.celebrity || 
+               ("Key Mismatch - Check Console");
+    };
 
     return <>
         <IonPage> 
             <IonHeader>
                 <IonToolbar>
-                    <IonTitle color="tertiary">Celebrity Name Answer</IonTitle>
+                    <IonTitle color="tertiary"> Active Room: {roomCode} </IonTitle>
+                    {/*<IonTitle color="tertiary">Celebrity Name Answer</IonTitle>*/}
                     <IonButton
                         slot='end'
                         shape='round'
@@ -114,18 +158,21 @@ const Answers = () => {
             </IonHeader>
             <IonContent fullscreen>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                <Controller 
-                    name="RoomCode"
-                    control={control}
-                    render={({ field })  => (
-                        <IonInput 
-                        fill="outline"
-                        label="Enter Room Code"
-                        value={field.value}
-                        onIonChange={(e) => field.onChange(e.detail.value)}
-                        />
-                    )}
-                /> 
+                    {/*}
+                    <div style={{ display: 'none' }}>
+                        <Controller 
+                            name="RoomCode"
+                            control={control}
+                            render={({ field }) => (
+                                <IonInput 
+                                    type="hidden"
+                                    value={field.value}
+                                    onIonChange={(e) => field.onChange(e.detail.value)}
+                                />
+                            )}
+                        /> 
+                    </div> */}
+                <IonItem>
                 <Controller
                     name="Username"
                     control={control}
@@ -138,6 +185,8 @@ const Answers = () => {
                         />
                     )}
                 /> 
+                </IonItem>
+                <IonItem>
                 <Controller
                     name="CelebrityName"
                     control={control}
@@ -150,6 +199,7 @@ const Answers = () => {
                         />
                  )}
                 /> 
+                </IonItem>
                 <IonButton
                     shape='round'
                     fill='outline'
@@ -170,17 +220,17 @@ const Answers = () => {
                 <IonToolbar>
                     Submitted Answers 
                 </IonToolbar>
-            <IonList>
-           
-          <IonItem>
-            <IonLabel>
-                <h2><strong>Current Celebrity: {typeof latestCelebrity === 'object' ? latestCelebrity?.latestCelebrity : latestCelebrity}</strong></h2>
-                <p>Submitted by: {}</p>
-            </IonLabel>
-          </IonItem>
-        </IonList> 
+                <IonList>
+                    <IonItem>
+                        <IonLabel>
+                        <h2><strong>Current Celebrity: {displayCelebrityText()}</strong></h2>
+                        <p>Last Submitter (This Session): <strong>{lastSubmitter}</strong></p>
+                        <p>Room Status: Active Sync</p>
+                        </IonLabel>
+                    </IonItem>
+                </IonList> 
             </IonContent>
-            </IonPage>
+        </IonPage>
     </>
 };
 

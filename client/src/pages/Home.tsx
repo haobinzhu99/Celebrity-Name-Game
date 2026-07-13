@@ -12,17 +12,18 @@ const Home: React.FC = () => {
         
           <IonButton
           expand="block" 
-          routerLink="/games/CreateRoomCode"
+          routerLink="/CreateRoomCode"
           >
           Create Room Code 
           </IonButton>
           
           <IonButton
           expand="block" 
-          routerLink="/games"
+          routerLink="/CurrentRooms"
           >
           Current Room Codes
           </IonButton>
+
           <IonButton
           expand="block" 
           routerLink="/games"
