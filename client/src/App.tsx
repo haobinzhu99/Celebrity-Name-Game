@@ -50,7 +50,7 @@ const App: React.FC = () => (
     <IonReactRouter>
       <IonRouterOutlet>
         <Route exact path="/">
-          <Home />s
+          <Home />
         </Route>
         <Route exact path="/games" >
           <Games />
